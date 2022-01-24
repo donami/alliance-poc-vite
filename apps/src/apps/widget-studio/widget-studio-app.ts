@@ -10,13 +10,12 @@ const WidgetStudioApp = (ctx: AppContext) => {
     vueApp.mount(element);
   });
 
-  // ctx.capability('init', (args) => {
+  // ctx.enable('init', (args) => {
   //   // framework.requestView(view);
   //   return view('init');
   // });
 
-  ctx.capability('openObjects', (args) => {
-    // return view('openObjects')
+  ctx.enable('openObjects', (args) => {
     return {
       type: 'view',
       command: 'render',
@@ -25,7 +24,33 @@ const WidgetStudioApp = (ctx: AppContext) => {
     };
   });
 
-  // ctx.capability('deleteObjects', (args) => {
+  ctx.enable('sys.fetch', (args) => {
+    // TODO: what should this capability be called
+    return {
+      type: 'process',
+      command: 'sys.fetch',
+      response: [
+        {
+          ref: '4',
+          label: 'My Widget',
+          objectType: 'widget',
+        },
+        {
+          ref: '5',
+          label: 'My Widget 2',
+          objectType: 'widget',
+        },
+        {
+          ref: '6',
+          label: 'My Widget 3',
+          objectType: 'widget',
+        },
+      ],
+      args,
+    };
+  });
+
+  // ctx.enable('deleteObjects', (args) => {
   //   return deleteObject(args.refId)
   //     .then(() => {
   //       return capabilityResponse('process', 'resolved');

@@ -1,3 +1,4 @@
+import { createQuery } from './create-query';
 import { createView } from './create-view';
 import { AppConfiguration, AppContext, CapabilityResponse } from './types';
 
@@ -14,25 +15,23 @@ export const createApplication = (
     dispatch: (key, data) => {
       framework.events.dispatch(key, data);
     },
-    createView: (fn) => {
+    objects: {
+      query: (input) => {
+        const query = createQuery(input, appContext);
+
+        return query;
+      },
+    },
+    createView: (fn, initialProps = {}) => {
+      const view = createView(config.name, framework, initialProps);
+
       renderFn = (elem: HTMLElement) => {
-        fn(elem);
+        fn(elem, view);
       };
 
-      const view = createView(config.name, framework);
-
       return view;
-      // return (command: string, args?: any) => {
-      //   console.log('command', command, args);
-      //   if (command === 'render') {
-      //     view.render();
-      //     // framework.renderApp(config.name);
-      //   } else if (command === 'setProps') {
-      //     view.setProps(args);
-      //   }
-      // };
     },
-    capability: (name, fn) => {
+    enable: (name, fn) => {
       framework.capability(config.name, name, fn);
     },
   };

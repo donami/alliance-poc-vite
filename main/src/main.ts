@@ -12,6 +12,8 @@ import {
 } from 'apps';
 import { createFramework } from 'framework';
 
+import 'apps/dist/style.css';
+
 const setup = () => {
   const framework = createFramework();
 
@@ -22,8 +24,10 @@ const setup = () => {
   framework.registerApp(WidgetStudioAppManifest, WidgetStudioApp);
   framework.registerApp(KnowledgeAppManifest, KnowledgeApp);
 
+  framework.initialize();
   // framework.render();
-  framework.renderApp('FindApp');
+  framework.renderApp('FindApp', '#main-content');
+  framework.renderApp('TaskbarApp', '#sidebar');
 };
 
 setup();

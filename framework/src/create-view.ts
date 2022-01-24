@@ -1,7 +1,13 @@
-import { Framework, View } from './types';
+import { createEventManager } from './events';
+import { Framework, View, ViewProps } from './types';
 
-export const createView = (appName: string, framework: Framework) => {
-  let props: { [key: string]: any } = {};
+export const createView = (
+  appName: string,
+  framework: Framework,
+  initialProps: ViewProps
+) => {
+  let props: ViewProps = initialProps;
+  const events = createEventManager();
 
   const view: View = {
     setProps: (updated: { [key: string]: any }) => {
@@ -9,6 +15,12 @@ export const createView = (appName: string, framework: Framework) => {
         ...props,
         ...updated,
       };
+      events.dispatch('updated', { props });
+    },
+    onUpdate: (fn) => {
+      view.events.subscribe('updated', (data: any) => {
+        fn(data);
+      });
     },
     render: () => {
       framework.renderApp(appName);
@@ -21,7 +33,8 @@ export const createView = (appName: string, framework: Framework) => {
         view.setProps(args);
       }
     },
-    props,
+    props: () => props,
+    events,
   };
 
   return view;

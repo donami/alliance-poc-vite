@@ -9,7 +9,7 @@ const TaskbarApp = (ctx: AppContext) => {
     vueApp.mount(element);
   });
 
-  ctx.capability('openObjects', (args) => {
+  ctx.enable('openObjects', (args) => {
     // TODO:
   });
 };

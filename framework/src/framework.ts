@@ -1,8 +1,12 @@
 import { createApplication } from './create-application';
 import { createEventManager } from './events';
-import { AppConfiguration, Application, Framework } from './types';
-
-type CapabilityAction = (args: any[]) => any; // TODO: return capabilityresponse
+import {
+  AppConfiguration,
+  Application,
+  CapabilityAction,
+  Framework,
+  QueryInputArgs,
+} from './types';
 
 type Capabilities = {
   [key: string]: {
@@ -18,14 +22,53 @@ const getRelevantApps = (
 ): Application[] => {
   const result: Application[] = [];
   apps.forEach((app, name) => {
-    const { managedObjects = [] } = app.config();
-
-    if (managedObjects.includes(objectType)) {
+    if (objectType === '*') {
       result.push(app);
+    } else {
+      const { managedObjects = [] } = app.config();
+
+      if (managedObjects.includes(objectType)) {
+        result.push(app);
+      }
     }
   });
 
   return result;
+};
+
+const getEnabledCapabilities = (capabilities: Capabilities) => {
+  return Object.entries(capabilities).reduce<{
+    [key: string]: CapabilityAction;
+  }>((acc, [key, commands]) => {
+    Object.entries(commands).forEach(([command, fn]) => {
+      acc[`${key}-${command}`] = fn;
+    });
+
+    return acc;
+  }, {});
+};
+
+const getCapabilitiesByCommand = (
+  command: string,
+  capabilities: Capabilities,
+  relevantApps: Application[]
+) => {
+  const commands = getEnabledCapabilities(capabilities);
+  const appNames = relevantApps.map((app) => app.config().name);
+
+  return Object.entries(commands).reduce<CapabilityAction[]>(
+    (acc, [key, fn]) => {
+      // const [commandKey] = key.split('-').slice(-1);
+      const [appName, commandKey] = key.split('-');
+
+      if (appNames.includes(appName) && commandKey === command) {
+        acc.push(fn);
+      }
+
+      return acc;
+    },
+    []
+  );
 };
 
 export const createFramework = (): Framework => {
@@ -48,13 +91,25 @@ export const createFramework = (): Framework => {
     relevantCapabilities.forEach((capability) => {
       const response = capability(data);
 
-      console.log('response', response);
       if (response.type === 'view') {
         response.view.invoke(response.command, response.args);
-        // response.view(response.command, response.args);
       }
     });
   });
+
+  const initialize = async () => {
+    const matchingCapabilities = framework.capabilitiesByKey('sys.launch', {
+      type: '*',
+    });
+
+    const promises = matchingCapabilities.map((capability) => {
+      return capability([]);
+    });
+
+    await Promise.all(promises);
+
+    return Promise.resolve(true);
+  };
 
   const registerApp = (appConfig: AppConfiguration, _app: any) => {
     const application = createApplication(appConfig, _app, framework);
@@ -74,9 +129,10 @@ export const createFramework = (): Framework => {
     });
   };
 
-  const renderApp = (name: string) => {
+  const renderApp = (name: string, selector?: string) => {
     const app = apps.get(name);
-    const element = document.querySelector(querySelector);
+    // TODO: get querySelector from outside
+    const element = document.querySelector(selector || querySelector);
 
     if (app && element) {
       app.render(element as HTMLElement);
@@ -95,10 +151,16 @@ export const createFramework = (): Framework => {
     capabilities[appName][name] = fn;
   };
 
-  const framework = {
+  const framework: Framework = {
+    initialize,
     render,
     renderApp,
     capability,
+    capabilitiesByKey: (key, filter) => {
+      const relevantApps = getRelevantApps(filter.type, apps);
+
+      return getCapabilitiesByCommand(key, capabilities, relevantApps);
+    },
     apps,
     registerApp,
     events,
